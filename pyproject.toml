@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autocvd"
+version = "0.0.1"
+author = "Jonas Ricker"
+description = ""
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jonasricker/autocvd"
+"Bug Tracker" = "https://github.com/jonasricker/autocvd/issues"
+
+[project.scripts]
+autocvd = "autocvd.main:cli"
+
+[tool.black]
+line-length = 79
+preview = true
+
+[tool.isort]
+profile = "black"
+line_length = 79
