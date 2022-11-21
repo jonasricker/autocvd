@@ -6,12 +6,13 @@ Basic usage is as simple as:
 ```
 $ eval $(autocvd) your_awesome_program
 ```
-*autocvd* will identify a free GPU and set `CUDA_VISIBLE_DEVICES` accordingly. If no GPU is free, it will wait until one becomes available. This behavior can be customized (see [Usage](#usage)).
+*autocvd* will identify a free GPU and set `CUDA_VISIBLE_DEVICES` accordingly. If no GPU is free, it will **wait** until one becomes available. This behavior can be customized (see [Usage](#usage)).
 
 ## Features
 - no dependencies
 - can be used from command line and code
 - no code changes required (if used from the command line)
+- optional waiting logic
 
 ## Requirements
 *autocvd* uses [`nvidia-smi`](https://developer.nvidia.com/nvidia-system-management-interface) to query GPU utilization.
