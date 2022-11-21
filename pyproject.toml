@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "autocvd"
 version = "0.0.1"
 author = "Jonas Ricker"
-description = ""
+description = "Automatically set CUDA_VISIBLE_DEVICES"
 readme = "README.md"
 requires-python = ">=3.6"
 classifiers = [
