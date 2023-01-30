@@ -1,7 +1,9 @@
 """Main."""
 
 import argparse
+import logging
 import os
+import sys
 import time
 from typing import List, Optional
 
@@ -10,7 +12,9 @@ from autocvd.nvidia_smi_calls import (
     get_installed_gpus,
     gpu_is_free,
 )
-from autocvd.utils import Spinner, positive_int, print_info
+from autocvd.utils import Spinner, positive_int
+
+logger = logging.getLogger(__name__)
 
 
 def autocvd(
@@ -19,7 +23,7 @@ def autocvd(
     timeout: Optional[int] = None,
     interval: int = 30,
     set_env: bool = True,
-    quiet: bool = False,
+    progress: bool = True,
 ) -> List[int]:
     """Select GPUs based on their utilization.
 
@@ -32,7 +36,8 @@ def autocvd(
         interval (int, optional): Interval to query GPUs in seconds. Defaults to 30.
         set_env (bool, optional): If True, set CUDA environment variables according to
         selected GPUs. Defaults to True.
-        quiet (bool, optional): If True, do not print any messages. Defaults to False.
+        progress (bool, optional): If True, show progress while waiting. Defaults to
+            True.
 
     Raises
     ------
@@ -46,16 +51,15 @@ def autocvd(
     num_installed_gpus = get_installed_gpus()
     if num_gpus < 1 or num_gpus > num_installed_gpus:
         num_gpus = 1 if num_gpus < 1 else num_installed_gpus
-        print_info(
+        logger.warning(
             f"Parameter 'num_gpus' must be between 1 and {num_installed_gpus}, setting"
             f" to {num_gpus}."
         )
 
     # selection
-    if not quiet:
-        print_info(
-            f"Selecting {num_gpus} {'least-used' if least_used else 'free'} GPU(s)."
-        )
+    logger.info(
+        f"Selecting {num_gpus} {'least-used' if least_used else 'free'} GPU(s)."
+    )
     if least_used:
         free_memories = {
             gpu: get_free_gpu_memory(gpu) for gpu in range(num_installed_gpus)[::-1]
@@ -73,29 +77,38 @@ def autocvd(
                 available_gpus = free_gpus
                 break
             for _ in range(interval):
-                if timeout and time.time() - start > timeout:
+                time_passed = int(time.time() - start)
+                if timeout and time_passed > timeout:
                     raise TimeoutError(
                         f"Could not acquire {num_gpus} GPU(s) before timeout."
                     )
-                if not quiet:
-                    timeout_str = str(timeout) + "s" if timeout else "/"
-                    print_info(
+                if progress:
+                    time_str = (
+                        f"for {timeout - time_passed: >{len(str(timeout))}}s"
+                        if timeout is not None
+                        else "indefinitely"
+                    )
+                    print(
                         (
-                            f"{len(free_gpus)} / {num_gpus} GPU(s) available (timeout:"
-                            f" {timeout_str}, querying every {interval}s), waiting"
-                            f" {spinner}"
+                            f"{len(free_gpus)} / {num_gpus} GPU(s) available (waiting"
+                            f" {time_str}, querying every {interval}s) {spinner}"
                         ),
-                        overwrite=True,
+                        file=sys.stderr,
+                        end="\r",
                     )
                 time.sleep(1)
     selected_gpus = sorted(available_gpus[:num_gpus])
-    if not quiet:
-        print_info(f"Selected GPU(s): {selected_gpus}.")
+    logger.info(f"Selected GPU(s): {selected_gpus}.")
 
     # setting environment variables
     if set_env:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, selected_gpus))
+        logger.info(
+            "Set environment variables"
+            f" CUDA_VISIBLE_DEVICES={','.join(map(str, selected_gpus))} and"
+            " CUDA_DEVICE_ORDER=PCI_BUS_ID."
+        )
 
     return selected_gpus
 
@@ -152,13 +165,18 @@ def cli() -> None:
     )
     args = parser.parse_args()
 
+    if not args.quiet:
+        logging.basicConfig(
+            stream=sys.stderr, level=logging.INFO, format="autocvd: %(message)s"
+        )
+
     gpus = autocvd(
         num_gpus=args.num_gpus,
         least_used=args.least_used,
         timeout=args.timeout,
         interval=args.interval,
         set_env=False,
-        quiet=args.quiet,
+        progress=not args.quiet,
     )
     prefix = "export " if args.source else ""
     print(

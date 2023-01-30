@@ -1,17 +1,7 @@
 """Various utility functions."""
 
 import argparse
-import sys
 from typing import Any
-
-
-def print_info(msg: str, overwrite: bool = False) -> None:
-    """Print message to stderr."""
-    if overwrite:
-        end = "\r"
-    else:
-        end = None
-    print(f"autocvd: {msg}", file=sys.stderr, end=end)
 
 
 class Spinner:
