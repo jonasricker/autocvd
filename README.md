@@ -1,18 +1,32 @@
-# autocvd - Automatically set `CUDA_VISIBLE_DEVICES`
+# autocvd, a tool for setting CUDA_VISIBLE_DEVICES based on utilization
 
-Are you working on a shared system with multiple NVIDIA GPUs and tired of manually setting `CUDA_VISIBLE_DEVICES` every time you run a program? Then, *autocvd* might be the right tool for you!
+On a system with multiple NVIDIA GPUs, *autocvd* **eliminates the need for manually specifying the `CUDA_VISIBLE_DEVICES` environment variable**. This comes in especially handy on systems with multiple users, like a **shared GPU server**. It is **dependency-free** and requires **no code changes** in your scripts.
 
-Basic usage is as simple as:
+To execute a command on a single free GPU, run
+```bash
+$ eval $(autocvd) <command>
 ```
-$ eval $(autocvd) your_awesome_program
-```
-*autocvd* will identify a free GPU and set `CUDA_VISIBLE_DEVICES` accordingly. If no GPU is free, it will **wait** until one becomes available. This behavior can be customized (see [Usage](#usage)).
+This will select a free GPU (or wait if none is available) and run the command with the appropriate environment variables set.
 
-## Features
-- no dependencies
-- can be used from command line and code
-- no code changes required (if used from the command line)
-- optional waiting logic
+For ease of use you might want to define an alias in your `.bashrc`, e.g., to run a Python script on a free GPU:
+```bash
+$ alias gpupython="eval $(autocvd) python"
+```
+
+## Examples
+```bash
+# run command on two free GPUs
+$ eval $(autocvd -n 2) <command>
+
+# run command on least-used GPU (i.e., do not wait if no GPU is free)
+$ eval $(autocvd -l) <command>
+
+# if no free GPU is available immediately, wait for 60 seconds only
+$ eval $(autocvd -t 60) <command>
+
+# export environment variables into the current shell
+$ . <(autocvd -e)  # alternatively: source <(autocvd -e)
+```
 
 ## Requirements
 *autocvd* uses [`nvidia-smi`](https://developer.nvidia.com/nvidia-system-management-interface) to query GPU utilization.
@@ -23,67 +37,40 @@ Make sure that it is installed and callable.
 pip install autocvd
 ```
 ## Usage
-### Command Line
 ```
-$ autocvd -h
-usage: autocvd [-h] [-n NUM_GPUS] [-l] [-t TIMEOUT] [-i INTERVAL] [-s]
+usage: autocvd [-h] [-n NUM_GPUS] [-l] [-t TIMEOUT] [-i INTERVAL] [-e] [-o] [-q]
 
-Select GPUs based on their utilization. To set the environment variables CUDA_VISIBLE_DEVICES and CUDA_DEVICE_ORDER for a single command run 'eval $(autocvd <args>) <command>'. To
-source them into the current shell environment run '. <(autocvd -s <args>)'.
+A tool for setting CUDA_VISIBLE_DEVICES based on utilization. Basic usage: eval $(autocvd) <command>
 
 optional arguments:
   -h, --help            show this help message and exit
   -n NUM_GPUS, --num-gpus NUM_GPUS
                         Number of required GPUs. Defaults to 1.
-  -l, --least-used      Instead of waiting for free GPUs, use least used. Defaults to False.
+  -l, --least-used      Select least-used GPUs instead of waiting for free GPUs. Defaults to False.
   -t TIMEOUT, --timeout TIMEOUT
-                        Timeout for waiting in seconds. Defaults to None.
+                        Timeout for waiting in seconds. Defaults to no timeout.
   -i INTERVAL, --interval INTERVAL
                         Interval to query GPU status in seconds. Defaults to 30.
-  -s, --source          Add 'export' statements to output such that environment can be sourced.
+  -e, --export          Add 'export' statements such that environment can be sourced.
+  -o, --id-only         Return comma-separated GPU IDs only instead of environment variable assignment.
+  -q, --quiet           Do not print any messages. Defaults to False.
 ```
 
-### Code
+*autocvd* can also be used to set the environment variables from a Python script itself:
 ```python
 from autocvd import autocvd
 
 
 autocvd()
+
+# code accessing GPUs
 ```
+Note that some packages read `CUDA_VISIBLE_DEVICES` when being imported, which makes it necessary to call *autocvd* **before** importing it.
 
-```python
-def autocvd(
-    num_gpus: int = 1,
-    least_used: bool = False,
-    timeout: Optional[int] = None,
-    interval: int = 30,
-    set_env: bool = True,
-    verbose: bool = True,
-) -> List[int]:
-    """Select GPUs based on their utilization.
-
-    Args:
-        num_gpus: Number of required GPUs. Defaults to 1.
-        least_used: Instead of waiting for free GPUs, use least used.
-            Defaults to False.
-        timeout: Timeout for waiting in seconds. Defaults to None.
-        interval: Interval to query GPU status in seconds. Defaults to 30.
-        set_env: Set environment variables according to selected GPUs.
-            Defaults to True.
-        verbose: Print additional information. Defaults to True.
-
-    Raises:
-        ValueError: If arguments are invalid.
-        TimeoutError: If GPUs could not be acquired after `timeout` seconds.
-
-    Returns:
-        A list containing the selected GPUs.
-    """
-```
 
 ## Notes
-- Settings `CUDA_DEVICE_ORDER=PCI_BUS_ID` is required to ensure that the ordering of CUDA devices is the same for `nvidia-smi` and other programs.
+- Besides setting `CUDA_VISIBLE_DEVICES`, *autocvd* also sets `CUDA_DEVICE_ORDER=PCI_BUS_ID`. This is required to ensure that the ordering of CUDA devices is consistent.
 
-## Similar Projects
+## Related Projects
 - [cuthon](https://github.com/awni/cuthon)
 - [setGPU](https://github.com/bamos/setGPU)

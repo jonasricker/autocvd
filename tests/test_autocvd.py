@@ -100,6 +100,14 @@ def test_num_gpu_validation(
     assert autocvd(num_gpus=num_requested) == expected
 
 
+def test_env(nvidia_smi_mocker: MockerFixture) -> None:
+    autocvd()
+    assert (
+        os.environ["CUDA_DEVICE_ORDER"] == "PCI_BUS_ID"
+        and os.environ["CUDA_VISIBLE_DEVICES"] == "0"
+    )
+
+
 def test_timeout(nvidia_smi_mocker: MockerFixture) -> None:
     nvidia_smi_mocker.patch("autocvd.main.gpu_is_free", return_value=False)
 
@@ -107,9 +115,8 @@ def test_timeout(nvidia_smi_mocker: MockerFixture) -> None:
         autocvd(num_gpus=1, timeout=1)
 
 
-def test_env(nvidia_smi_mocker: MockerFixture) -> None:
-    autocvd()
-    assert (
-        os.environ["CUDA_DEVICE_ORDER"] == "PCI_BUS_ID"
-        and os.environ["CUDA_VISIBLE_DEVICES"] == "0"
-    )
+def test_no_gpus(nvidia_smi_mocker: MockerFixture) -> None:
+    nvidia_smi_mocker.patch("autocvd.main.get_installed_gpus", return_value=0)
+
+    with pytest.raises(OSError):
+        autocvd()

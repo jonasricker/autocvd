@@ -1,4 +1,4 @@
-"""Main."""
+"""autocvd, a tool for setting CUDA_VISIBLE_DEVICES based on utilization."""
 
 import argparse
 import logging
@@ -41,14 +41,18 @@ def autocvd(
 
     Raises
     ------
+        OSError: If no GPUs are installed.
         TimeoutError: If GPUs could not be acquired before timeout.
 
     Returns
     -------
         List[int]: Selected GPUs.
     """
-    # adjust num_gpus if necessary
     num_installed_gpus = get_installed_gpus()
+    if num_installed_gpus == 0:
+        raise OSError("There are no GPUs installed.")
+
+    # adjust num_gpus if necessary
     if num_gpus < 1 or num_gpus > num_installed_gpus:
         num_gpus = 1 if num_gpus < 1 else num_installed_gpus
         logger.warning(
@@ -98,15 +102,16 @@ def autocvd(
                     )
                 time.sleep(1)
     selected_gpus = sorted(available_gpus[:num_gpus])
-    logger.info(f"Selected GPU(s): {selected_gpus}.")
+    id_str = ",".join(map(str, selected_gpus))
+    logger.info(f"Selected GPU(s): {id_str.replace(',', ', ')}.")
 
     # setting environment variables
     if set_env:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, selected_gpus))
+        os.environ["CUDA_VISIBLE_DEVICES"] = id_str
         logger.info(
             "Set environment variables"
-            f" CUDA_VISIBLE_DEVICES={','.join(map(str, selected_gpus))} and"
+            f" CUDA_VISIBLE_DEVICES={id_str} and"
             " CUDA_DEVICE_ORDER=PCI_BUS_ID."
         )
 
@@ -117,11 +122,8 @@ def cli() -> None:
     """Command-line interface for autocvd."""
     parser = argparse.ArgumentParser(
         description=(
-            "Select GPUs based on their utilization. To set the environment"
-            " variables CUDA_VISIBLE_DEVICES and CUDA_DEVICE_ORDER for a"
-            " single command run 'eval $(autocvd <args>) <command>'. To source"
-            " them into the current shell environment run '. <(autocvd -s"
-            " <args>)'."
+            "A tool for setting CUDA_VISIBLE_DEVICES based on utilization. Basic usage:"
+            " eval $(autocvd) <command>"
         ),
         epilog="Documentation and examples: https://github.com/jonasricker/autocvd",
     )
@@ -136,7 +138,10 @@ def cli() -> None:
         "-l",
         "--least-used",
         action="store_true",
-        help="Instead of waiting for free GPUs, use least used. Defaults to False.",
+        help=(
+            "Select least-used GPUs instead of waiting for free GPUs. Defaults to"
+            " False."
+        ),
     )
     parser.add_argument(
         "-t",
@@ -152,10 +157,19 @@ def cli() -> None:
         help="Interval to query GPU status in seconds. Defaults to 30.",
     )
     parser.add_argument(
-        "-s",
-        "--source",
+        "-e",
+        "--export",
         action="store_true",
-        help="Add 'export' statements to output such that environment can be sourced.",
+        help="Add 'export' statements such that environment can be sourced.",
+    )
+    parser.add_argument(
+        "-o",
+        "--id-only",
+        action="store_true",
+        help=(
+            "Return comma-separated GPU IDs only instead of environment variable"
+            " assignment."
+        ),
     )
     parser.add_argument(
         "-q",
@@ -178,8 +192,12 @@ def cli() -> None:
         set_env=False,
         progress=not args.quiet,
     )
-    prefix = "export " if args.source else ""
-    print(
-        f"{prefix}CUDA_DEVICE_ORDER=PCI_BUS_ID "
-        f"{prefix}CUDA_VISIBLE_DEVICES={','.join(map(str, gpus))}"
-    )
+    id_str = ",".join(map(str, gpus))
+    if args.id_only:
+        print(id_str)
+    else:
+        prefix = "export " if args.export else ""
+        print(
+            f"{prefix}CUDA_DEVICE_ORDER=PCI_BUS_ID "
+            f"{prefix}CUDA_VISIBLE_DEVICES={id_str}"
+        )
