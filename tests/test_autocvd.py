@@ -120,3 +120,12 @@ def test_no_gpus(nvidia_smi_mocker: MockerFixture) -> None:
 
     with pytest.raises(OSError):
         autocvd()
+
+
+def test_exclude(nvidia_smi_mocker: MockerFixture) -> None:
+    nvidia_smi_mocker.patch(
+        "autocvd.main.get_installed_gpus",
+        return_value=3,
+    )
+    assert autocvd(num_gpus=2, exclude=[1]) == [0, 2]
+    assert autocvd(exclude=[0, 2]) == [1]

@@ -21,6 +21,9 @@ $ eval $(autocvd -n 2) <command>
 # run command on least-used GPU (i.e., do not wait if no GPU is free)
 $ eval $(autocvd -l) <command>
 
+# exclude certain GPUs
+$ eval $(autocvd -x 0 2) <command>
+
 # if no free GPU is available immediately, wait for 60 seconds only
 $ eval $(autocvd -t 60) <command>
 
@@ -47,6 +50,8 @@ optional arguments:
   -n NUM_GPUS, --num-gpus NUM_GPUS
                         Number of required GPUs. Defaults to 1.
   -l, --least-used      Select least-used GPUs instead of waiting for free GPUs. Defaults to False.
+  -x EXCLUDE [EXCLUDE ...], --exclude EXCLUDE [EXCLUDE ...]
+                        One or multiple GPUs (separated by space) to be excluded. Defaults to no GPU being excluded.
   -t TIMEOUT, --timeout TIMEOUT
                         Timeout for waiting in seconds. Defaults to no timeout.
   -i INTERVAL, --interval INTERVAL

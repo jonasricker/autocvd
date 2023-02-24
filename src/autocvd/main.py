@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 def autocvd(
     num_gpus: int = 1,
     least_used: bool = False,
+    exclude: Optional[List[int]] = None,
     timeout: Optional[int] = None,
     interval: int = 30,
     set_env: bool = True,
@@ -31,6 +32,8 @@ def autocvd(
         num_gpus (int, optional): Number of GPUs. Defaults to 1.
         least_used (bool, optional): If True, select least-used GPUs instead of waiting
             for free GPUs. Defaults to False.
+        exclude (Optional[List[int]], optional): One or multiple GPUs to be excluded.
+            Defaults to None.
         timeout (Optional[int], optional): Timeout for waiting in seconds. Defaults to
             None (=wait indefinitely).
         interval (int, optional): Interval to query GPUs in seconds. Defaults to 30.
@@ -60,14 +63,18 @@ def autocvd(
             f" to {num_gpus}."
         )
 
+    # exclude GPUs if specified
+    gpus = list(range(num_installed_gpus))
+    if exclude is not None:
+        for ex in exclude:
+            gpus.remove(ex)
+
     # selection
     logger.info(
         f"Selecting {num_gpus} {'least-used' if least_used else 'free'} GPU(s)."
     )
     if least_used:
-        free_memories = {
-            gpu: get_free_gpu_memory(gpu) for gpu in range(num_installed_gpus)[::-1]
-        }
+        free_memories = {gpu: get_free_gpu_memory(gpu) for gpu in gpus[::-1]}
         free_memories = dict(
             sorted(free_memories.items(), key=lambda x: x[1], reverse=True)
         )
@@ -76,7 +83,7 @@ def autocvd(
         spinner = Spinner()
         start = time.time()
         while True:
-            free_gpus = list(filter(gpu_is_free, range(num_installed_gpus)[::-1]))
+            free_gpus = list(filter(gpu_is_free, gpus[::-1]))
             if len(free_gpus) >= num_gpus:
                 available_gpus = free_gpus
                 break
@@ -144,6 +151,16 @@ def cli() -> None:
         ),
     )
     parser.add_argument(
+        "-x",
+        "--exclude",
+        nargs="+",
+        type=int,
+        help=(
+            "One or multiple GPUs (separated by space) to be excluded. Defaults to no"
+            " GPU being excluded."
+        ),
+    )
+    parser.add_argument(
         "-t",
         "--timeout",
         type=positive_int,
@@ -187,6 +204,7 @@ def cli() -> None:
     gpus = autocvd(
         num_gpus=args.num_gpus,
         least_used=args.least_used,
+        exclude=args.exclude,
         timeout=args.timeout,
         interval=args.interval,
         set_env=False,
