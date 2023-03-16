@@ -1,6 +1,6 @@
-# autocvd, a tool for setting CUDA_VISIBLE_DEVICES based on utilization
+# autocvd, a tool for setting CUDA_VISIBLE_DEVICES based on GPU utilization
 
-On a system with multiple NVIDIA GPUs, *autocvd* **eliminates the need for manually specifying the `CUDA_VISIBLE_DEVICES` environment variable**. This comes in especially handy on systems with multiple users, like a **shared GPU server**. It is **dependency-free** and requires **no code changes** in your scripts.
+On a system with multiple NVIDIA GPUs, *autocvd* **eliminates the need for manually specifying the `CUDA_VISIBLE_DEVICES` environment variable**. This comes in especially handy on systems with multiple users, like a **shared GPU server**. It is **dependency-free** and requires **no code changes**.
 
 To execute a command on a single free GPU, run
 ```bash
