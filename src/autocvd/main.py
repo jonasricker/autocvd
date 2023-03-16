@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import time
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from autocvd.nvidia_smi_calls import (
     get_free_gpu_memory,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def autocvd(
     num_gpus: int = 1,
     least_used: bool = False,
-    exclude: Optional[List[int]] = None,
+    exclude: Optional[Union[int, List[int]]] = None,
     timeout: Optional[int] = None,
     interval: int = 30,
     set_env: bool = True,
@@ -29,25 +29,30 @@ def autocvd(
     """Select GPUs based on their utilization.
 
     Args:
-        num_gpus (int, optional): Number of GPUs. Defaults to 1.
-        least_used (bool, optional): If True, select least-used GPUs instead of waiting
-            for free GPUs. Defaults to False.
-        exclude (Optional[List[int]], optional): One or multiple GPUs to be excluded.
-            Defaults to None.
-        timeout (Optional[int], optional): Timeout for waiting in seconds. Defaults to
-            None (=wait indefinitely).
-        interval (int, optional): Interval to query GPUs in seconds. Defaults to 30.
-        set_env (bool, optional): If True, set CUDA environment variables according to
-        selected GPUs. Defaults to True.
-        progress (bool, optional): If True, show progress while waiting. Defaults to
-            True.
+    ----
+        num_gpus (int, optional):
+            Number of GPUs. Defaults to 1.
+        least_used (bool, optional):
+            If True, select least-used GPUs instead of waiting for free GPUs.
+            Defaults to False.
+        exclude (Optional[Union[int, List[int]]], optional):
+            One or multiple GPUs to be excluded. Defaults to None.
+        timeout (Optional[int], optional):
+            Timeout for waiting in seconds. Defaults to None (=wait indefinitely).
+        interval (int, optional):
+            Interval to query GPUs in seconds. Defaults to 30.
+        set_env (bool, optional):
+            If True, set CUDA environment variables according to selected GPUs.
+            Defaults to True.
+        progress (bool, optional):
+            If True, show progress while waiting. Defaults to True.
 
-    Raises
+    Raises:
     ------
         OSError: If no GPUs are installed.
         TimeoutError: If GPUs could not be acquired before timeout.
 
-    Returns
+    Returns:
     -------
         List[int]: Selected GPUs.
     """
@@ -65,6 +70,8 @@ def autocvd(
 
     # exclude GPUs if specified
     gpus = list(range(num_installed_gpus))
+    if isinstance(exclude, int):
+        exclude = [exclude]
     if exclude is not None:
         for ex in exclude:
             gpus.remove(ex)
