@@ -70,12 +70,13 @@ autocvd()
 
 # code accessing GPUs
 ```
-Note that some packages read `CUDA_VISIBLE_DEVICES` when being imported, which makes it necessary to call *autocvd* **before** importing it.
+Note that some packages read `CUDA_VISIBLE_DEVICES` when being imported, which makes it necessary to call *autocvd* **before** importing them.
 
 
 ## Notes
 - Besides setting `CUDA_VISIBLE_DEVICES`, *autocvd* also sets `CUDA_DEVICE_ORDER=PCI_BUS_ID`. This is required to ensure that the ordering of CUDA devices is consistent.
 
 ## Related Projects
+- [autocvd-go](https://github.com/shunk031/autocvd-go)
 - [cuthon](https://github.com/awni/cuthon)
 - [setGPU](https://github.com/bamos/setGPU)
